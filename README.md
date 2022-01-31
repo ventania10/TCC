@@ -4,7 +4,9 @@ Repositório para controle e análises estatísticas desenvolvidas ao longo do T
 
 ## Informações Básicas:
 > Orientando - Gabriel José dos Reis Carvalho (EST/UnB)
+
 > Orientador - Eduardo Monteiro de Castro Gomes (EST/UnB)
+
 > *[Rstudio](https://rstudio.com/products/rstudio/download/#download)
 ## Banco de dados:
 
