@@ -10,8 +10,11 @@ Repositório para controle e análises estatísticas desenvolvidas ao longo do T
 > Linguagem de programação> *[Rstudio](https://rstudio.com/products/rstudio/download/#download)
 ## Banco de dados:
 LISTA DE POSSIVEIS ESCOLHAS:
+
 *[CXR8](https://nihcc.app.box.com/v/ChestXray-NIHCC)
+
 *[chest-xray-pneumonia](https://www.kaggle.com/paultimothymooney/chest-xray-pneumonia)
+
 *SOLICITAR NOS HOSPITAIS DO DF
 ### Conexão ao repositório
 
