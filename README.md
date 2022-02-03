@@ -7,22 +7,21 @@ Repositório para controle e análises estatísticas desenvolvidas ao longo do T
 
 > Orientador - Eduardo Monteiro de Castro Gomes (EST/UnB)
 
-> *[Rstudio](https://rstudio.com/products/rstudio/download/#download)
+> Linguagem de programação> *[Rstudio](https://rstudio.com/products/rstudio/download/#download)
 ## Banco de dados:
-
-
-
+LISTA DE POSSIVEIS ESCOLHAS:
+*[CXR8](https://nihcc.app.box.com/v/ChestXray-NIHCC)
+*[chest-xray-pneumonia](https://www.kaggle.com/paultimothymooney/chest-xray-pneumonia)
+*SOLICITAR NOS HOSPITAIS DO DF
 ### Conexão ao repositório
 
-> Para visualizar os scripts desenvolvidos você pode:
-
-Clonar o repositório por meio do comando:
+> Para visualizar os scripts desenvolvidos você pode clonar o repositório por meio do comando:
 
 ```sh
 git clone https://github.com/ventania10/TCC
 ```
 
-Pronto! Agora você tem acesso a todos os scripts desenvolvidos:
+Pronto! Agora você tem acesso a todos os scripts desenvolvidos.
 
 * script1.R
 
