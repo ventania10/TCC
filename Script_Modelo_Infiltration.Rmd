@@ -1,0 +1,251 @@
+---
+rotulo: "REDES NEURAIS CONVOLUCIONAIS \\ APLICADA NO APOIO AO DIAGNÓSTICO \n COM BASE EM RADIOGRAFIAS."
+author:
+  - Orientando. Gabriel José dos Reis Carvalho^[(EST/UnB)]
+  - Prof. Eduardo Monteiro de Castro Gomes^[(EST/UnB)]
+output:
+  rmdformats::downcute:
+    code_folding: show
+    df_print: paged
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: amelia
+---
+
+* * *
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+### Bibliotecas dependentes:
+```{r}
+if (!require(pacman)) {
+  install.packages("pacman")
+  library(pacman)
+}
+pacman::p_load(tidyverse, Keras)
+
+
+```
+
+
+
+### Carregando dicionario da análise
+```{r}
+load("dici.rdata")
+```
+
+
+
+### local de todas imagens
+```{r}
+local_dataset <- "./dados/CXR8/images"
+loc_img <- data.frame("local"=list.files(local_dataset, full.names = T, recursive = T)) %>%
+  mutate("Image.Index"=str_sub(local,-16))
+
+loc_img %>% head()
+```
+
+
+### Particionando em bases de treinamento e teste:
+```{r}
+
+dici <- dici  %>% select(starts_with("rotulo")) %>%
+  transmute(sumVar = rowSums(.)) %>% bind_cols(dici, .)
+
+dados <- dici %>% filter(rotulo_Infiltration==1,sumVar==1) %>%
+  rbind(dici %>% filter(sumVar==0) %>% sample_n(10000)) %>%
+  left_join(loc_img)
+
+set.seed(160006473) # semente igual minha matricula
+amostra <- sample(dim(dados)[1],size = .75*dim(dados)[1], replace = F)
+
+base_treino <- dados[amostra,]
+base_teste <- dados[-amostra,]
+
+amostra2 <- sample(dim(base_teste)[1],size = .75*dim(base_teste)[1], replace = F)
+
+base_validation <- base_teste[amostra2,]
+base_teste <- base_teste[-amostra2,]
+
+```
+
+### Criando pastas de teste, treino e validação
+
+```{r}
+base_dir <- "Infiltration_Normal"
+dir.create(base_dir)
+
+train_dir <- file.path(base_dir, "train")
+test_dir <- file.path(base_dir, "test")
+validation_dir <- file.path(base_dir, "validation")
+dir.create(train_dir)
+dir.create(test_dir)
+dir.create(validation_dir)
+
+list.files(base_dir)
+### criando subpastas em treino
+train_Infiltration_dir <- file.path(train_dir, "Infiltration")
+train_Normal_dir <- file.path(train_dir, "Normal")
+dir.create(train_Infiltration_dir)
+dir.create(train_Normal_dir)
+
+list.files(train_dir)
+### criando subpastas em teste
+test_Infiltration_dir <- file.path(test_dir, "Infiltration")
+test_Normal_dir <- file.path(test_dir, "Normal")
+dir.create(test_Infiltration_dir)
+dir.create(test_Normal_dir)
+
+list.files(test_dir)
+### criando subpastas em validação
+validation_Infiltration_dir <- file.path(validation_dir, "Infiltration")
+validation_Normal_dir <- file.path(validation_dir, "Normal")
+dir.create(validation_Infiltration_dir)
+dir.create(validation_Normal_dir)
+
+list.files(validation_dir)
+```
+
+### Realocando imagens 
+```{r}
+### treino
+files <- base_treino  %>% filter(sumVar==1) %>% pull(local)
+filesstrings::move_files(files, train_Infiltration_dir, overwrite=TRUE)
+
+files_n <- base_treino  %>% filter(sumVar==0) %>% pull(local)
+filesstrings::move_files(files_n, train_Normal_dir, overwrite=TRUE)
+
+### teste
+files <- base_teste  %>% filter(sumVar==1) %>% pull(local)
+filesstrings::move_files(files, test_Infiltration_dir, overwrite=TRUE)
+
+files_n <- base_teste  %>% filter(sumVar==0) %>% pull(local)
+filesstrings::move_files(files_n, test_Normal_dir, overwrite=TRUE)
+
+### validação
+files <- base_validation  %>% filter(sumVar==1) %>% pull(local)
+filesstrings::move_files(files, validation_Infiltration_dir, overwrite=TRUE)
+
+files_n <- base_validation  %>% filter(sumVar==0) %>% pull(local)
+filesstrings::move_files(files_n, validation_Normal_dir, overwrite=TRUE)
+
+```
+### leituras das imagens/normalização
+
+```{r}
+#ler as imagens em disco
+data_generator <- image_data_generator(rescale = 1/255)
+
+
+train_generator <- flow_images_from_directory(
+  train_dir,
+  data_generator,
+  target_size = c(150, 150),
+  batch_size = 50,
+  class_mode = "binary"
+)
+
+test_generator <- flow_images_from_directory(
+  test_dir,
+  data_generator,
+  target_size = c(150, 150),
+  batch_size = 50,
+  class_mode = "binary"
+)
+
+validation_generator <- flow_images_from_directory(
+  validation_dir,
+  data_generator,
+  target_size = c(150, 150),
+  batch_size = 50,
+  class_mode = "binary"
+)
+
+
+
+```
+
+#### Arquitetura da rede
+
+```{r}
+model <- keras_model_sequential() %>%
+  layer_conv_2d(filters = 32, kernel_size = c(3, 3), activation = "relu",
+                input_shape = c(150, 150, 3)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+  layer_conv_2d(filters = 64, kernel_size = c(3, 3), activation = "relu") %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+  layer_conv_2d(filters = 128, kernel_size = c(3, 3), activation = "relu") %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+  layer_conv_2d(filters = 128, kernel_size = c(3, 3), activation = "relu") %>%
+  layer_max_pooling_2d(pool_size = c(2, 2))
+
+
+
+model %>%
+  layer_flatten() %>%
+  layer_dense(units = 512, activation = "relu") %>%
+  layer_dense(units = 256, activation = "relu") %>%
+  layer_dense(units = 128, activation = "relu") %>%
+  layer_dense(units = 64, activation = "relu") %>%
+  layer_dense(units = 2, activation = "sigmoid")
+
+summary(model)
+```
+
+
+### Definindo função de perda
+```{r}
+model %>% compile(
+  loss = "binary_crossentropy",
+  optimizer = optimizer_rmsprop(learning_rate = 1e-3),
+  metrics = c("acc")
+)
+
+```
+
+
+### Treinamento do modelo
+##### calbacks
+```{r}
+early_stop <- callback_early_stopping(
+  monitor = "val_loss",
+  min_delta = 1e-3,
+  patience = 8,
+  verbose = 1
+)
+
+checkpoint <- callback_model_checkpoint(
+  "Infiltration_Normal_1.h5",
+  monitor = "val_loss",
+  verbose = 1,
+  save_best_only = T,
+  mode = "min",
+  period = NULL
+)
+```
+
+
+```{r}
+history <- model %>% fit_generator(
+  train_generator,
+  epochs = 50,
+  validation_data = validation_generator,
+  callbacks = c(checkpoint,early_stop)
+)
+```
+
+
+### Resultados
+```{r}
+plot(history)
+```
+
+
+
+
+
