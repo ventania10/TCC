@@ -1,0 +1,129 @@
+---
+rotulo: "REDES NEURAIS CONVOLUCIONAIS \\ APLICADA NO APOIO AO DIAGNÓSTICO \n COM BASE EM RADIOGRAFIAS."
+author:
+  - Orientando. Gabriel José dos Reis Carvalho^[(EST/UnB)]
+  - Prof. Eduardo Monteiro de Castro Gomes^[(EST/UnB)]
+output:
+  rmdformats::downcute:
+    code_folding: show
+    df_print: paged
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: amelia
+---
+
+* * *
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+### Bibliotecas dependentes:
+```{r}
+if (!require(pacman)) {
+  install.packages("pacman")
+  library(pacman)
+}
+pacman::p_load(dplyr, tidyr, stringr)
+
+```
+
+
+
+
+### Leitura dos dicionario dos dados:
+```{r}
+dici <- read.csv("./dados/CXR8/Data_Entry_2017_v2020.csv")
+glimpse(dici)
+```
+
+### Feature Engineering:
+#### Transformando a variavel FD em respostas dummy:
+```{r}
+rotulo <- c(
+  "Atelectasis",
+  "Cardiomegaly",
+  "Consolidation",
+  "Effusion",
+  "Edema",
+  "Emphysema",
+  "Fibrosis",
+  "Hernia",
+  "Infiltration",
+  "Mass",
+  "Nodule",
+  "Pneumonia",
+  "Pneumothorax",
+  "Pleural_Thickening"
+)
+
+rotulo_vars <- rotulo %>% 
+  purrr::map(~ expr(ifelse(data.table::like(Finding.Labels, !!.x), 1, 0))) %>%
+  purrr::set_names(paste0("rotulo_", gsub("\\s|/", "", rotulo)))
+
+dici <- mutate(dici,!!!rotulo_vars)
+
+#save(dici,file = "dici.rdata")
+```
+
+
+#### Ocorrencia dos rotulo:
+```{r}
+dici %>% select(starts_with("rotulo")) %>%
+  summarise_all( ~ sum(as.integer(.))) %>%
+  pivot_longer(cols = starts_with("rotulo"),
+               names_to = "Patologia",
+               values_to = "freq") %>%
+  mutate(frac = paste0(round(`freq` / sum(`freq`) * 100, 1), "%")) %>%
+  arrange(desc(freq))
+
+
+```
+
+
+
+#### Multiplicidade dos rotulo:
+
+```{r}
+dici  %>% select(starts_with("rotulo")) %>%
+  transmute(sumVar = rowSums(.)) %>% bind_cols(dici, .) %>%
+  pull(sumVar) %>% table()
+ 
+```
+
+#### Multiplicidade dos rotulo:
+
+
+```{r}
+
+dici  %>% select(starts_with("rotulo")) %>%
+  
+m <- matrix(nrow = 14,ncol = 14)
+colnames(m) <- rownames(m) <- rotulo
+
+mycolor <- viridis::viridis(14, alpha = 1, begin = 0, end = 1, option = "D")
+mycolor <- mycolor[sample(1:14)]
+
+chorddiag(m, groupColors = mycolor, groupnamePadding = 20)
+             
+```
+
+
+```{r}
+img_path <- dados %>% slice(1) %>% pull(local)
+
+
+img <- image_load(img_path, target_size = c(150, 150))
+img_tensor <- image_to_array(img)
+img_tensor <- array_reshape(img_tensor, c(1, 150, 150, 3))
+img_tensor <- img_tensor / 255
+dim(img_tensor)
+
+object.size(img_tensor)/1e+6 #megab
+
+plot(as.raster(img_tensor[1,,,]))
+```
+
